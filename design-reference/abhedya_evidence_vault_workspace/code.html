@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="web_dashboard" name="shell-type"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "error-container": "#ffdad6",
+            "on-error": "#ffffff",
+            "secondary": "#785463",
+            "on-primary": "#ffffff",
+            "on-surface-variant": "#4e444a",
+            "on-primary-fixed-variant": "#5e3c55",
+            "on-tertiary-container": "#ab8b50",
+            "primary-fixed-dim": "#e7b9d8",
+            "surface-container-low": "#f5f3f0",
+            "inverse-primary": "#e7b9d8",
+            "surface-bright": "#fbf9f6",
+            "on-secondary-container": "#7b5665",
+            "surface-variant": "#e4e2df",
+            "on-background": "#1b1c1a",
+            "surface": "#fbf9f6",
+            "on-secondary-fixed": "#2e131f",
+            "surface-container-high": "#eae8e5",
+            "primary": "#260921",
+            "tertiary-fixed-dim": "#e6c181",
+            "on-primary-container": "#ad83a0",
+            "inverse-surface": "#30312f",
+            "secondary-fixed-dim": "#e8bacb",
+            "tertiary-container": "#382600",
+            "secondary-fixed": "#ffd8e6",
+            "tertiary": "#1e1200",
+            "secondary-container": "#ffd0e1",
+            "outline": "#80747a",
+            "on-primary-fixed": "#2e1128",
+            "tertiary-fixed": "#ffdea6",
+            "on-secondary-fixed-variant": "#5e3d4b",
+            "primary-fixed": "#ffd7f1",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-highest": "#e4e2df",
+            "surface-dim": "#dbdad7",
+            "on-tertiary-fixed": "#271900",
+            "on-tertiary-fixed-variant": "#5b430e",
+            "on-error-container": "#93000a",
+            "primary-container": "#3d1e36",
+            "on-secondary": "#ffffff",
+            "on-surface": "#1b1c1a",
+            "outline-variant": "#d1c3ca",
+            "on-tertiary": "#ffffff",
+            "error": "#ba1a1a",
+            "surface-tint": "#78536e",
+            "background": "#fbf9f6",
+            "inverse-on-surface": "#f2f0ed",
+            "surface-container": "#efeeeb"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          },
+          spacing: {
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "space-lg": "1.5rem",
+            "space-xl": "2.5rem",
+            "gutter": "1.5rem",
+            "margin": "2.5rem"
+          },
+          fontFamily: {
+            "display-hero": ["Newsreader", "serif"],
+            "headline-lg": ["Newsreader", "serif"],
+            "headline-md": ["Newsreader", "serif"],
+            "headline-sm": ["Newsreader", "serif"],
+            "title-md": ["Manrope", "sans-serif"],
+            "title-sm": ["Manrope", "sans-serif"],
+            "body-lg": ["Manrope", "sans-serif"],
+            "body-md": ["Manrope", "sans-serif"],
+            "body-sm": ["Manrope", "sans-serif"],
+            "label-md": ["JetBrains Mono", "monospace"],
+            "label-sm": ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased">
+<!-- Top Global Header -->
+<header class="fixed top-0 left-0 right-0 z-50 h-16 bg-surface border-b border-surface-variant/80">
+<div class="w-full h-full px-8 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-lg">shield</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-base text-primary tracking-tight font-medium leading-none">ABHEDYA</span>
+<span class="font-label-sm text-[0.625rem] text-on-surface-variant uppercase tracking-widest mt-0.5">Digital Safety</span>
+</div>
+</div>
+<div class="h-4 w-px bg-surface-variant hidden md:block"></div>
+<div class="hidden md:flex items-center gap-2 font-label-sm text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-outline">policy</span>
+<span>ARCHIVAL DOSSIER DISPATCH</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container border border-surface-variant">
+<span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+<span class="font-label-sm text-xs text-on-surface uppercase tracking-wider">Workspace Secure</span>
+</div>
+<div class="h-4 w-px bg-surface-variant"></div>
+<button class="px-2 py-0.5 font-label-sm text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors uppercase" type="button">EN</button>
+<div class="h-4 w-px bg-surface-variant"></div>
+<div class="flex items-center gap-2.5">
+<img alt="Officer Profile" class="w-8 h-8 rounded-full object-cover border border-surface-variant" src="https://lh3.googleusercontent.com/aida/AEtjO1Weul4uCoAqeyptLNCBvwxjbCjK1XDXSDZCyM6RZSdVFJkYB7-NjwA3qt_zd0CmKus7MvBMxVUbcG6RjzjmYQKf0UKXJJNAtP7p6ZxTye7K_VRS0yC22UZUKGDztZJkh9d0JG5pZzoJEawNakB4RH0o7mozl2ao5zNDk5n_c8orPvIJJ8iKDdRw-GA438xic1jtrQbIN2ibVf6B4jTgLbedUDNV5PoL1HIs15K5oyzq1HVYadvrkxLOc5k"/>
+<div class="hidden sm:flex flex-col text-left">
+<span class="font-label-md text-xs text-on-surface font-semibold leading-tight">Case Officer</span>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant leading-none">ID-7402</span>
+</div>
+<button aria-label="Account options" class="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Side Navigation Rail -->
+<aside class="fixed left-0 top-16 bottom-0 w-64 bg-surface-container-low border-r border-surface-variant/80 z-40 flex flex-col justify-between p-4">
+<div class="flex flex-col gap-5">
+<div class="px-2 pt-1">
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant uppercase tracking-wider block font-medium">Dossier Modules</span>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-sm text-sm" href="#">
+<span class="material-symbols-outlined text-lg">grid_view</span>
+<span>Incident Ledger</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-sm text-sm" href="#">
+<span class="material-symbols-outlined text-lg">radar</span>
+<span>Threat Radar</span>
+</a>
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2 rounded transition-colors bg-primary text-on-primary font-medium font-body-sm text-sm shadow-sm" href="#">
+<span class="material-symbols-outlined text-lg">fingerprint</span>
+<span>Evidence Vault</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-sm text-sm" href="#">
+<span class="material-symbols-outlined text-lg">gavel</span>
+<span>Legal Remedies</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-sm text-sm" href="#">
+<span class="material-symbols-outlined text-lg">task_alt</span>
+<span>Takedown Tracker</span>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-3 border-t border-surface-variant pt-4">
+<div class="px-3 py-2 rounded bg-surface-container/60 border border-surface-variant/50">
+<span class="font-label-sm text-[0.625rem] text-outline uppercase tracking-wider block">Chain of Custody</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-xs text-on-surface font-medium">SHA-256 Verified</span>
+</div>
+</div>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors font-body-sm text-sm" href="#">
+<span class="material-symbols-outlined text-lg">tune</span>
+<span>Vault Settings</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas (Fixed wide layout, non-collapsing columns) -->
+<div class="pl-64">
+<main class="w-full pt-16 bg-surface min-h-screen">
+<div class="max-w-[1440px] mx-auto px-8 py-8 flex flex-col gap-6">
+<!-- 1. Header & Breadcrumbs Area -->
+<div class="w-full flex flex-col gap-3">
+<div class="flex flex-wrap items-center justify-between gap-3">
+<div class="flex items-center gap-2">
+<a class="inline-flex items-center gap-1 text-on-surface-variant hover:text-primary transition-colors font-body-sm text-xs group" href="#">
+<span class="material-symbols-outlined text-sm transition-transform group-hover:-translate-x-0.5">arrow_back</span>
+<span>Back to workspace</span>
+</a>
+<span class="text-outline/60 text-xs">/</span>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant uppercase tracking-wider">ARCHIVAL EVIDENCE REPOSITORY</span>
+</div>
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container rounded border border-surface-variant/70 shadow-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-xs text-on-surface-variant tracking-wide font-medium">Chain of Custody Active • SHA-256 Immutability Enabled</span>
+</div>
+</div>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-1 border-b border-surface-variant/40 pb-5">
+<div>
+<h1 class="font-headline-lg text-3xl md:text-4xl text-primary font-normal tracking-tight">Evidence Vault</h1>
+<p class="font-body-md text-sm md:text-base text-on-surface-variant mt-1 max-w-3xl">
+                Keep important digital incidents organized, forensically sealed, and ready for legal review.
+              </p>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<button class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container-lowest hover:bg-surface-container border border-surface-variant text-on-surface rounded font-body-sm text-sm font-medium transition-colors shadow-xs" type="button">
+<span class="material-symbols-outlined text-base text-secondary">archive</span>
+<span>Export All Dossiers (.zip)</span>
+</button>
+<button class="inline-flex items-center gap-2 px-4 py-2 bg-primary-container hover:bg-primary text-on-primary rounded font-title-sm text-sm font-medium transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-base">description</span>
+<span>Generate Incident Report</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 2. Preservation Guidance Banner -->
+<div class="w-full bg-surface-container-low border border-surface-variant/70 rounded-lg p-5 shadow-xs relative overflow-hidden">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+<div class="lg:w-2/5 flex flex-col gap-2">
+<div class="inline-flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-lg">verified_user</span>
+<span class="font-label-sm text-xs font-semibold uppercase tracking-wider">Preservation Protocol</span>
+</div>
+<h2 class="font-headline-sm text-xl text-primary font-medium tracking-tight">
+                PRESERVE BEFORE YOU REMOVE
+              </h2>
+<p class="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+                Before submitting platform takedowns or blocking perpetrators, freeze verified digital copies for legal viability under statutory evidentiary standards.
+              </p>
+<div class="pt-1">
+<a class="inline-flex items-center gap-1 font-label-sm text-xs text-secondary hover:text-primary transition-colors underline decoration-secondary/40 underline-offset-2" href="#">
+<span>Cybercrime reporting guidance &amp; legal chain-of-custody overview (Rule 65B &amp; ISO/IEC 27037 compliant documentation platform)</span>
+<span class="material-symbols-outlined text-xs">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Guidelines Checklist in Multi-column Flex/Grid -->
+<div class="lg:w-3/5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-surface-container-lowest p-4 rounded border border-surface-variant/60 shadow-xs">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-base text-secondary mt-0.5 shrink-0">check_circle</span>
+<span class="font-body-sm text-xs text-on-surface">Save complete unedited screenshots with visible URLs &amp; device status bars</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-base text-secondary mt-0.5 shrink-0">check_circle</span>
+<span class="font-body-sm text-xs text-on-surface">Keep original raw content &amp; unedited forensic source files</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-base text-secondary mt-0.5 shrink-0">check_circle</span>
+<span class="font-body-sm text-xs text-on-surface">Record exact timestamps (UTC + local timezone synchronized)</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-base text-secondary mt-0.5 shrink-0">check_circle</span>
+<span class="font-body-sm text-xs text-on-surface">Save relevant canonical URLs, account handles &amp; immutable profile IDs</span>
+</div>
+<div class="flex items-start gap-2 sm:col-span-2">
+<span class="material-symbols-outlined text-base text-secondary mt-0.5 shrink-0">check_circle</span>
+<span class="font-body-sm text-xs text-on-surface">Preserve surrounding conversational context &amp; threat escalation trails</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. Search & Tactical Filter Toolbar -->
+<div class="w-full bg-surface-container-lowest border border-surface-variant/80 rounded-lg p-3 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xs">
+<!-- Search input -->
+<div class="relative flex-1 min-w-[260px]">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-lg">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 bg-surface-container-low text-on-surface placeholder:text-outline font-body-sm text-xs rounded border border-transparent focus:border-surface-variant focus:bg-surface-container-lowest focus:outline-none transition-all" placeholder="Search by Case ID, handle, or keyword..." type="text"/>
+</div>
+<!-- Filter Dropdowns & Stats -->
+<div class="flex flex-wrap items-center gap-2">
+<div class="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low border border-surface-variant/60 rounded">
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant uppercase font-medium">Category:</span>
+<select class="bg-transparent font-label-sm text-xs text-on-surface focus:outline-none cursor-pointer">
+<option>All Types</option>
+<option>Threat &amp; Doxxing</option>
+<option>Image Impersonation</option>
+<option>Targeted Harassment</option>
+<option>Commercial Reproduction</option>
+</select>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low border border-surface-variant/60 rounded">
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant uppercase font-medium">Severity:</span>
+<select class="bg-transparent font-label-sm text-xs text-on-surface focus:outline-none cursor-pointer">
+<option>All Scores</option>
+<option>Critical (80-100)</option>
+<option>High (60-79)</option>
+<option>Medium (40-59)</option>
+<option>Low (0-39)</option>
+</select>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low border border-surface-variant/60 rounded">
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant uppercase font-medium">Channel:</span>
+<select class="bg-transparent font-label-sm text-xs text-on-surface focus:outline-none cursor-pointer">
+<option>All Channels</option>
+<option>Instagram</option>
+<option>X / Twitter</option>
+<option>Telegram</option>
+<option>YouTube</option>
+<option>Web Marketplace</option>
+</select>
+</div>
+<div class="h-5 w-px bg-surface-variant mx-1 hidden sm:block"></div>
+<span class="font-label-sm text-xs text-on-surface-variant whitespace-nowrap px-1">
+<strong>4 of 4</strong> sealed records
+            </span>
+<button class="p-1.5 text-on-surface-variant hover:text-on-surface bg-surface-container-low hover:bg-surface-container rounded border border-surface-variant/60 transition-colors" title="Clear filters" type="button">
+<span class="material-symbols-outlined text-base">filter_alt_off</span>
+</button>
+</div>
+</div>
+<!-- 4. Structured Evidence Table (Full-Width, Uncompressed) -->
+<div class="w-full bg-surface-container-lowest border border-surface-variant/80 rounded-lg shadow-xs overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-surface-container-low/90 text-on-surface-variant font-label-sm text-xs uppercase border-b border-surface-variant">
+<th class="py-3 px-4 font-semibold w-[28%]">Incident ID &amp; Title</th>
+<th class="py-3 px-4 font-semibold w-[18%]">Category &amp; Target</th>
+<th class="py-3 px-4 font-semibold w-[14%]">Risk Severity</th>
+<th class="py-3 px-4 font-semibold w-[22%]">Cryptographic Proof &amp; Time</th>
+<th class="py-3 px-4 font-semibold w-[10%]">Status</th>
+<th class="py-3 px-4 font-semibold w-[8%] text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant/60 font-body-sm text-xs">
+<!-- Row 1: Critical -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-start gap-2.5">
+<div class="w-2 h-2 rounded-full bg-error mt-1.5 shrink-0"></div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-xs font-semibold text-primary">CASE-8942-B</span>
+<span class="px-1.5 py-0.2 bg-error-container text-on-error-container rounded text-[0.625rem] font-label-sm font-semibold uppercase">Urgent</span>
+</div>
+<span class="font-title-sm text-xs font-semibold text-on-surface mt-0.5">Threat / Doxxing Attempt</span>
+<span class="font-body-sm text-xs text-on-surface-variant italic truncate max-w-sm mt-0.5">"I know where you live and which studio you work in."</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-0.5">
+<div class="inline-flex items-center gap-1 font-label-sm text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-sm text-secondary">location_on</span>
+<span>Threat / Doxxing</span>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant flex items-center gap-1">
+<span class="text-outline">Target:</span>
+<span class="bg-surface-container px-1 py-0.2 rounded text-primary">IG Post #841029 (@anonymous_stalker_91)</span>
+</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1 w-28">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-xs font-bold text-error">94/100</span>
+<span class="font-label-sm text-[0.625rem] font-bold text-error uppercase">CRITICAL</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-error h-full rounded-full" style="width: 94%;"></div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1.5 group">
+<span class="font-label-sm text-[0.6875rem] font-mono text-on-surface bg-surface-container px-1.5 py-0.5 rounded">e3b0c44298fc...b855</span>
+<button class="text-outline hover:text-primary transition-colors" onclick="navigator.clipboard?.writeText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')" title="Copy SHA-256 Hash" type="button">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant">Oct 24, 2025 • 21:14:02 UTC</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-secondary-container/50 text-on-secondary-container border border-secondary-container font-label-sm text-[0.6875rem] font-medium">
+<span class="material-symbols-outlined text-xs">lock</span>
+<span class="uppercase">Sealed &amp; Locked</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap text-right">
+<div class="inline-flex items-center gap-1 justify-end">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high text-on-surface rounded font-label-sm text-xs font-medium transition-colors" title="Inspect Full Dossier" type="button">View</button>
+<button class="px-2 py-1 bg-primary-container hover:bg-primary text-on-primary rounded font-label-sm text-xs font-medium transition-colors" title="Export Certified PDF" type="button">Export</button>
+<button class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors" title="Add Notes" type="button">
+<span class="material-symbols-outlined text-sm">edit_note</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2: High -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-start gap-2.5">
+<div class="w-2 h-2 rounded-full bg-secondary mt-1.5 shrink-0"></div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-xs font-semibold text-primary">CASE-8930-M</span>
+<span class="px-1.5 py-0.2 bg-secondary-fixed text-on-secondary-fixed rounded text-[0.625rem] font-label-sm font-semibold uppercase">Forensic Spec</span>
+</div>
+<span class="font-title-sm text-xs font-semibold text-on-surface mt-0.5">Suspected Image Manipulation / Impersonation</span>
+<span class="font-body-sm text-xs text-on-surface-variant italic truncate max-w-sm mt-0.5">Altered portrait with face-swap synthesis artifacting</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-0.5">
+<div class="inline-flex items-center gap-1 font-label-sm text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-sm text-secondary">face</span>
+<span>Deepfake / Synthetic</span>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant flex items-center gap-1">
+<span class="text-outline">Target:</span>
+<span class="bg-surface-container px-1 py-0.2 rounded text-primary">Telegram Cache (@unauth_channel)</span>
+</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1 w-28">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-xs font-bold text-secondary">82/100</span>
+<span class="font-label-sm text-[0.625rem] font-bold text-secondary uppercase">HIGH</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 82%;"></div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1.5 group">
+<span class="font-label-sm text-[0.6875rem] font-mono text-on-surface bg-surface-container px-1.5 py-0.5 rounded">41c8d20fa990...1928</span>
+<button class="text-outline hover:text-primary transition-colors" onclick="navigator.clipboard?.writeText('41c8d20fa990bc77123908471203984120938410293840192834019283401928')" title="Copy SHA-256 Hash" type="button">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant">Oct 21, 2025 • 14:02:18 UTC</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface border border-surface-variant font-label-sm text-[0.6875rem] font-medium">
+<span class="material-symbols-outlined text-xs text-secondary">attachment</span>
+<span class="uppercase">Forensic Delta</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap text-right">
+<div class="inline-flex items-center gap-1 justify-end">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high text-on-surface rounded font-label-sm text-xs font-medium transition-colors" title="Inspect Full Dossier" type="button">View</button>
+<button class="px-2 py-1 bg-primary-container hover:bg-primary text-on-primary rounded font-label-sm text-xs font-medium transition-colors" title="Export Certified PDF" type="button">Export</button>
+<button class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors" title="Add Notes" type="button">
+<span class="material-symbols-outlined text-sm">edit_note</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Medium -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-start gap-2.5">
+<div class="w-2 h-2 rounded-full bg-outline mt-1.5 shrink-0"></div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-xs font-semibold text-primary">CASE-8919-H</span>
+<span class="px-1.5 py-0.2 bg-surface-container-high text-on-surface-variant rounded text-[0.625rem] font-label-sm font-semibold uppercase">Cluster</span>
+</div>
+<span class="font-title-sm text-xs font-semibold text-on-surface mt-0.5">Persistent Targeted Harassment</span>
+<span class="font-body-sm text-xs text-on-surface-variant italic truncate max-w-sm mt-0.5">14 coordinated abusive remarks across single studio thread</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-0.5">
+<div class="inline-flex items-center gap-1 font-label-sm text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-sm text-secondary">forum</span>
+<span>Harassment</span>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant flex items-center gap-1">
+<span class="text-outline">Target:</span>
+<span class="bg-surface-container px-1 py-0.2 rounded text-primary">YouTube Studio Comments (14 instances)</span>
+</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1 w-28">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-xs font-bold text-on-surface-variant">61/100</span>
+<span class="font-label-sm text-[0.625rem] font-bold text-on-surface-variant uppercase">MEDIUM</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-secondary-fixed-dim h-full rounded-full" style="width: 61%;"></div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1.5 group">
+<span class="font-label-sm text-[0.6875rem] font-mono text-on-surface bg-surface-container px-1.5 py-0.5 rounded">0e44a5f891a2...7391</span>
+<button class="text-outline hover:text-primary transition-colors" onclick="navigator.clipboard?.writeText('0e44a5f891a27498127391827391827391827391827391827391827391827391')" title="Copy SHA-256 Hash" type="button">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant">Oct 18, 2025 • 09:45:10 UTC</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface-variant border border-surface-variant font-label-sm text-[0.6875rem] font-medium">
+<span class="material-symbols-outlined text-xs text-outline">timeline</span>
+<span class="uppercase">Clustered Thread</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap text-right">
+<div class="inline-flex items-center gap-1 justify-end">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high text-on-surface rounded font-label-sm text-xs font-medium transition-colors" title="Inspect Full Dossier" type="button">View</button>
+<button class="px-2 py-1 bg-primary-container hover:bg-primary text-on-primary rounded font-label-sm text-xs font-medium transition-colors" title="Export Certified PDF" type="button">Export</button>
+<button class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors" title="Add Notes" type="button">
+<span class="material-symbols-outlined text-sm">edit_note</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Low -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="py-3.5 px-4">
+<div class="flex items-start gap-2.5">
+<div class="w-2 h-2 rounded-full bg-outline-variant mt-1.5 shrink-0"></div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-xs font-semibold text-primary">CASE-8894-C</span>
+<span class="px-1.5 py-0.2 bg-surface-container text-outline rounded text-[0.625rem] font-label-sm font-semibold uppercase">Infringement</span>
+</div>
+<span class="font-title-sm text-xs font-semibold text-on-surface mt-0.5">Unlicensed Commercial Reproduction</span>
+<span class="font-body-sm text-xs text-on-surface-variant italic truncate max-w-sm mt-0.5">Commercial marketplace print reseller reproducing protected art</span>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-0.5">
+<div class="inline-flex items-center gap-1 font-label-sm text-xs text-on-surface font-medium">
+<span class="material-symbols-outlined text-sm text-secondary">copyright</span>
+<span>IP Theft</span>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant flex items-center gap-1">
+<span class="text-outline">Target:</span>
+<span class="bg-surface-container px-1 py-0.2 rounded text-primary">Web Commercial Marketplace</span>
+</span>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1 w-28">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-xs font-bold text-outline">28/100</span>
+<span class="font-label-sm text-[0.625rem] font-bold text-outline uppercase">LOW</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="bg-outline-variant h-full rounded-full" style="width: 28%;"></div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1.5 group">
+<span class="font-label-sm text-[0.6875rem] font-mono text-on-surface bg-surface-container px-1.5 py-0.5 rounded">8b2734f9a012...2834</span>
+<button class="text-outline hover:text-primary transition-colors" onclick="navigator.clipboard?.writeText('8b2734f9a0129384019283401928340192834019283401928340192834019283')" title="Copy SHA-256 Hash" type="button">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+</button>
+</div>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant">Oct 12, 2025 • 11:20:45 UTC</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap">
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface-variant border border-surface-variant font-label-sm text-[0.6875rem] font-medium">
+<span class="material-symbols-outlined text-xs text-outline">inventory_2</span>
+<span class="uppercase">DMCA Packaged</span>
+</div>
+</td>
+<td class="py-3.5 px-4 whitespace-nowrap text-right">
+<div class="inline-flex items-center gap-1 justify-end">
+<button class="px-2 py-1 bg-surface-container hover:bg-surface-container-high text-on-surface rounded font-label-sm text-xs font-medium transition-colors" title="Inspect Full Dossier" type="button">View</button>
+<button class="px-2 py-1 bg-primary-container hover:bg-primary text-on-primary rounded font-label-sm text-xs font-medium transition-colors" title="Export Certified PDF" type="button">Export</button>
+<button class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded transition-colors" title="Add Notes" type="button">
+<span class="material-symbols-outlined text-sm">edit_note</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Ledger Footer -->
+<div class="bg-surface-container-low px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-surface-variant/70 font-label-sm text-xs text-on-surface-variant">
+<div class="flex items-center gap-3">
+<span>Displaying 4 forensic incident dossiers</span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="flex items-center gap-1 text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                Hardware Security Module (HSM) Synced 2m ago
+              </span>
+</div>
+<div class="flex items-center gap-1">
+<button class="px-2 py-1 text-outline cursor-not-allowed hover:bg-transparent rounded" disabled="" type="button">Previous</button>
+<span class="px-2.5 py-0.5 bg-surface-container-lowest text-primary rounded border border-surface-variant font-semibold">1</span>
+<button class="px-2 py-1 text-outline cursor-not-allowed hover:bg-transparent rounded" disabled="" type="button">Next</button>
+</div>
+</div>
+</div>
+<!-- 5. Bottom Section: Side-by-Side Verification & Legal Readiness Cards -->
+<div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 pb-12">
+<!-- Active Chain of Custody Specimen (Col 7) -->
+<div class="lg:col-span-7 bg-surface-container-lowest border border-surface-variant/80 p-5 rounded-lg shadow-xs flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-3 border-b border-surface-variant/40 mb-3">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded bg-secondary-container/50 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-base">fingerprint</span>
+</div>
+<div>
+<h3 class="font-title-sm text-sm text-primary font-semibold leading-tight">Active Chain of Custody Specimen</h3>
+<span class="font-label-sm text-[0.6875rem] text-on-surface-variant">Case #8942-B Verified Payload</span>
+</div>
+</div>
+<button class="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-container-low hover:bg-surface-container text-secondary rounded font-label-sm text-[0.6875rem] uppercase font-semibold transition-colors" onclick="navigator.clipboard?.writeText('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'); this.innerText = 'Copied!'; setTimeout(() =&gt; this.innerText = 'Copy SHA-256', 2000);" type="button">
+<span class="material-symbols-outlined text-xs">content_copy</span>
+<span>Copy SHA-256</span>
+</button>
+</div>
+<div class="bg-surface-container-low p-3 rounded border border-surface-variant/60 font-label-sm text-xs text-on-surface space-y-2.5">
+<div class="flex justify-between items-center text-outline text-[0.6875rem]">
+<span>HARDWARE SECURITY MODULE (HSM) DIGITAL DIGEST</span>
+<span>UTC WITNESS SERVER NODE 04</span>
+</div>
+<div class="break-all font-mono text-[0.75rem] text-on-surface bg-surface-container-lowest p-2.5 rounded border border-surface-variant/50 select-all tracking-tight leading-relaxed">
+                  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+                </div>
+<div class="grid grid-cols-3 gap-2 pt-1 text-on-surface-variant">
+<div>
+<span class="text-outline uppercase text-[0.625rem] block font-medium">Capture Node</span>
+<span class="font-medium text-on-surface text-[0.6875rem]">Web Archive Node 4</span>
+</div>
+<div>
+<span class="text-outline uppercase text-[0.625rem] block font-medium">Node Signature</span>
+<span class="font-mono text-on-surface text-[0.6875rem]">0x7F...8A92 (ECDSA)</span>
+</div>
+<div>
+<span class="text-outline uppercase text-[0.625rem] block font-medium">Local Device Witness</span>
+<span class="font-mono text-on-surface text-[0.6875rem]">2025-10-24 17:14 EDT</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-3 text-on-surface-variant font-label-sm text-[0.6875rem]">
+<span class="material-symbols-outlined text-sm text-secondary">verified</span>
+<span>All signatures cryptographically sealed into immutable tamper-evident ledger block.</span>
+</div>
+</div>
+<!-- Fast Escalation & Legal Packet Readiness (Col 5) -->
+<div class="lg:col-span-5 bg-primary text-on-primary p-5 rounded-lg shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div class="relative z-10">
+<div class="flex items-center justify-between pb-3 border-b border-on-primary/10 mb-3">
+<span class="font-label-sm text-[0.6875rem] uppercase text-secondary-fixed tracking-wider font-semibold">Fast Escalation</span>
+<span class="material-symbols-outlined text-secondary-fixed text-lg">gavel</span>
+</div>
+<h3 class="font-headline-sm text-lg md:text-xl text-on-primary font-medium tracking-tight">Legal Packet Readiness</h3>
+<p class="font-body-sm text-xs text-surface-variant/90 mt-2 leading-relaxed">
+                All 4 verified cases meet jurisdictional packaging requirements for formal platform preservation orders under <strong>18 U.S.C. § 2703(f)</strong> and <strong>Indian IT Act Section 65B</strong> forensic admissibility criteria.
+              </p>
+</div>
+<div class="relative z-10 mt-5 pt-3 border-t border-on-primary/15 flex flex-col gap-2">
+<button class="w-full py-2.5 px-4 bg-secondary hover:bg-secondary/90 text-on-secondary rounded font-title-sm text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-xs" type="button">
+<span class="material-symbols-outlined text-base">download_for_offline</span>
+<span>Compile Court-Admissible Dossier</span>
+</button>
+<span class="font-label-sm text-[0.625rem] text-surface-variant/80 text-center tracking-wide">
+                Includes tamper manifest, timestamp certificates &amp; hash chain verification
+              </span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
