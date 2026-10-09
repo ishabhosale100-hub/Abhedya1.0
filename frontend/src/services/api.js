@@ -59,3 +59,49 @@ export async function analyzeComments(comments, sensitivity = 'standard') {
     };
   }
 }
+
+
+/**
+ * Analyze one comment and record it as an incident for a demo account.
+ * @param {string} accountId - Demo account ID (not a verified identity)
+ * @param {string} platform - e.g. 'instagram'
+ * @param {string} comment - The comment text
+ * @param {string} sensitivity - 'standard' or 'strict'
+ * @returns {Promise<{data: {incident: Object, history: Array} | null, error?: string}>}
+ */
+export async function analyzeIncident(accountId, platform, comment, sensitivity = 'standard') {
+  if (!accountId?.trim() || !platform?.trim() || !comment?.trim()) {
+    return { data: null, error: 'Account ID, platform and comment are required.' };
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/incidents/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        account_id: accountId.trim(),
+        platform: platform.trim(),
+        comment: comment.trim(),
+        sensitivity,
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      const message =
+        typeof errData.detail === 'string' ? errData.detail : `Server error (${response.status})`;
+      return { data: null, error: message };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error) {
+    console.error('Incident API call failed:', error);
+    return {
+      data: null,
+      error: 'Cannot reach the analysis server. Check that the backend is running at http://127.0.0.1:8000.',
+    };
+  }
+}
