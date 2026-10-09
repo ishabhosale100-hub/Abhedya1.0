@@ -458,7 +458,10 @@ const handleClear = () => {
                         />
                       </div>
 
-                      <div class="flex gap-2">
+                                            <p class="font-label-sm text-label-sm text-on-surface-variant">
+                        Demo identifier only. ABHEDYA does not identify the real person behind an account. History is temporary and resets when the backend restarts.
+                      </p>
+<div class="flex gap-2">
                         <input
                           value={incidentComment}
                           onChange={(e) => setIncidentComment(e.target.value)}
@@ -479,8 +482,7 @@ const handleClear = () => {
                         <div class="flex flex-col gap-2 pt-1">
                           <div class="flex flex-wrap items-center gap-1.5">
                             <span class="font-label-sm text-label-sm bg-primary-container text-on-primary px-2 py-0.5 rounded font-semibold">
-                              {incidentResult.incident.category} ({incidentResult.incident.risk_score}/100)
-                            </span>
+                              {incidentResult.incident.category} · {incidentResult.incident.risk_level || 'n/a'} ({incidentResult.incident.risk_score}/100)                           </span>
                             <span class="font-label-sm text-label-sm bg-surface-container-high px-2 py-0.5 rounded">
                               Priority: {incidentResult.incident.priority}
                             </span>
@@ -496,7 +498,10 @@ const handleClear = () => {
                             )}
                           </div>
 
-                          <div class="font-label-sm text-label-sm text-outline uppercase tracking-wider">
+                                                    <div class="font-mono text-xs text-outline">
+                            Incident ID: {incidentResult.incident.incident_id} · {new Date(incidentResult.incident.timestamp).toLocaleString()}
+                          </div>
+<div class="font-label-sm text-label-sm text-outline uppercase tracking-wider">
                             Earlier incidents ({incidentResult.history.length})
                           </div>
                           {incidentResult.history.length === 0 ? (

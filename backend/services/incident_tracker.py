@@ -60,6 +60,7 @@ def record_incident(account_id, platform, analysis):
             "comment": analysis.get("comment", ""),
             "category": category,
             "risk_score": analysis.get("risk_score", 0),
+            "risk_level": analysis.get("risk_level", "Low"),
             "severity": severity,
             "harmful": harmful,
             "repeat_harassment": harmful and bool(previous),
