@@ -4,6 +4,8 @@ import { saveEvidenceRecord } from '../services/evidenceStore';
 
 export const INCIDENT_TYPES = [
   'Image Manipulation Investigation',
+  'Photo DNA Verification',
+  'Photo DNA Registration',
   'Online Harassment',
   'Threatening Comment',
   'Sexual Harassment',

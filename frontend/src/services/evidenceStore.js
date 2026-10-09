@@ -1,4 +1,4 @@
-import { computeSHA256 } from '../utils/hash';
+import { computeSHA256 } from '../utils/hash.js';
 
 const STORAGE_KEY = 'abhedya_evidence_records';
 
@@ -43,7 +43,8 @@ export async function saveEvidenceRecord(item) {
     timestamp,
   });
 
-  const sha256 = await computeSHA256(hashPayload);
+  const computedHash = await computeSHA256(hashPayload);
+  const sha256 = item.sha256 || computedHash;
 
   const record = {
     id,
@@ -59,11 +60,29 @@ export async function saveEvidenceRecord(item) {
     sha256,
     thumbnailUrl: item.thumbnailUrl || null,
     reasons: item.reasons || [],
+    evidenceDetails: item.evidenceDetails || null,
   };
 
-  // Add at top of array
-  records.unshift(record);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  // Prevent duplicate IDs: replace if exists, otherwise unshift
+  const existingIndex = records.findIndex(r => r.id === id);
+  if (existingIndex >= 0) {
+    records[existingIndex] = record;
+  } else {
+    records.unshift(record);
+  }
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  } catch (quotaErr) {
+    console.warn('Storage quota exceeded in localStorage, trimming older thumbnails:', quotaErr);
+    // Strip heavy thumbnails from older records to free quota
+    records.slice(10).forEach(r => { r.thumbnailUrl = null; });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    } catch (e) {
+      console.error('Failed to save evidence records to localStorage:', e);
+    }
+  }
   return record;
 }
 

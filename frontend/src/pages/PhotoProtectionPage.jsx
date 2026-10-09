@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { hashFile, formatHash } from '../utils/hash';
 import { saveEvidenceRecord } from '../services/evidenceStore';
+import { registerPhotoDna, getPhotoDnaRecordByHash } from '../services/photoDnaStore';
 
 export default function PhotoProtectionPage() {
   const navigate = useNavigate();
@@ -28,6 +29,8 @@ export default function PhotoProtectionPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isProtected, setIsProtected] = useState(false);
   const [protectedDataUrl, setProtectedDataUrl] = useState('');
+  const [registeredDnaId, setRegisteredDnaId] = useState('');
+  const [isRegisteringDna, setIsRegisteringDna] = useState(false);
 
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -165,6 +168,12 @@ export default function PhotoProtectionPage() {
     try {
       const hash = await hashFile(file);
       setFileSha256(hash);
+      const existing = await getPhotoDnaRecordByHash(hash);
+      if (existing) {
+        setRegisteredDnaId(existing.id);
+      } else {
+        setRegisteredDnaId('');
+      }
     } catch (err) {
       console.error('Failed to calculate SHA-256 hash:', err);
     }
@@ -302,7 +311,7 @@ export default function PhotoProtectionPage() {
 
     setProtectedDataUrl(canvas.toDataURL('image/png'));
     setIsProtected(true);
-    if (stepStatus > 0) setStepStatus(6);
+    setStepStatus(prev => (prev > 0 ? 6 : prev));
   }, [imageObj, activeTab, watermarkText, opacity, scale, position, visibleMark, isProcessing]);
 
   // Download Action
@@ -339,8 +348,36 @@ export default function PhotoProtectionPage() {
       });
 
       showToast(`Record ${record.id} saved to Evidence Vault`);
-    } catch (err) {
+    } catch (_err) {
       setErrorMsg('Failed to save record to Evidence Vault');
+    }
+  };
+
+  // Register Photo DNA
+  const handleRegisterPhotoDna = async () => {
+    if (!imageFile || !fileSha256) {
+      setErrorMsg('Please upload an image first.');
+      return;
+    }
+    setIsRegisteringDna(true);
+    setErrorMsg('');
+    try {
+      const record = await registerPhotoDna({
+        file: imageFile,
+        imageObj,
+        dimensions: fileDimensions,
+      });
+      setRegisteredDnaId(record.id);
+      showToast(`Photo DNA registered: ${record.id}`);
+    } catch (err) {
+      if (err.existingRecord) {
+        setRegisteredDnaId(err.existingRecord.id);
+        showToast(`Already registered under Photo DNA ID: ${err.existingRecord.id}`);
+      } else {
+        setErrorMsg(err.message || 'Failed to register Photo DNA');
+      }
+    } finally {
+      setIsRegisteringDna(false);
     }
   };
 
@@ -511,9 +548,17 @@ export default function PhotoProtectionPage() {
                             <span class="text-on-surface-variant">{fileSizeStr}</span>
                           </div>
                           
-                          <div class="flex items-center gap-1.5 font-label-sm text-label-sm text-secondary bg-surface-container px-2.5 py-1 rounded border border-surface-variant/60">
-                            <span class="material-symbols-outlined text-xs">fingerprint</span>
-                            <span class="font-mono text-[0.6875rem]">File fingerprint (SHA-256): {formatHash(fileSha256)}</span>
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <div class="flex items-center gap-1.5 font-label-sm text-label-sm text-secondary bg-surface-container px-2.5 py-1 rounded border border-surface-variant/60">
+                              <span class="material-symbols-outlined text-xs">fingerprint</span>
+                              <span class="font-mono text-[0.6875rem]">File fingerprint (SHA-256): {formatHash(fileSha256)}</span>
+                            </div>
+                            {registeredDnaId && (
+                              <div class="flex items-center gap-1 font-label-sm text-label-sm text-primary bg-secondary-container/40 px-2.5 py-1 rounded border border-secondary/30">
+                                <span class="material-symbols-outlined text-xs text-secondary">dna</span>
+                                <span class="font-mono text-[0.6875rem] font-semibold">{registeredDnaId}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -731,6 +776,20 @@ export default function PhotoProtectionPage() {
                         >
                           <span class="material-symbols-outlined text-lg text-secondary">fingerprint</span>
                           <span>Save to Evidence Vault</span>
+                        </button>
+
+                        <button 
+                          type="button"
+                          onClick={handleRegisterPhotoDna}
+                          disabled={!imageFile || isRegisteringDna}
+                          class="w-full py-2.5 px-space-lg rounded-lg bg-surface-container hover:bg-surface-container-high disabled:opacity-50 text-on-surface font-title-sm text-title-sm transition-all flex items-center justify-center gap-space-sm border border-secondary/40 cursor-pointer"
+                        >
+                          <span class="material-symbols-outlined text-lg text-secondary">dna</span>
+                          <span>
+                            {isRegisteringDna
+                              ? 'Registering Photo DNA...'
+                              : (registeredDnaId ? `Registered Photo DNA (${registeredDnaId})` : 'Register Photo DNA (Original)')}
+                          </span>
                         </button>
                       </div>
 

@@ -15,7 +15,7 @@ export async function checkBackendHealth() {
     if (!res.ok) return false;
     const data = await res.json();
     return Boolean(data && data.status === 'ok');
-  } catch (err) {
+  } catch (_err) {
     return false;
   }
 }
