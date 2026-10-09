@@ -22,6 +22,32 @@ export function loadImageFile(file) {
 }
 
 /**
+ * Load image from File, Blob, Image element or URL string.
+ * @param {File|Blob|string|HTMLImageElement} source 
+ * @returns {Promise<HTMLImageElement>}
+ */
+export function loadImageSource(source) {
+  if (!source) {
+    return Promise.reject(new Error('No image source provided'));
+  }
+  if (typeof HTMLImageElement !== 'undefined' && source instanceof HTMLImageElement) {
+    return Promise.resolve(source);
+  }
+  if (typeof source === 'string') {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(new Error('Failed to load image from URL'));
+      img.src = source;
+    });
+  }
+  if (typeof Blob !== 'undefined' && source instanceof Blob) {
+    return loadImageFile(source);
+  }
+  return Promise.reject(new Error('Unsupported image source type'));
+}
+
+/**
  * Compare two images and produce pixel metrics and difference heatmap.
  * @param {HTMLImageElement} img1 - Original Reference
  * @param {HTMLImageElement} img2 - Suspected Variant

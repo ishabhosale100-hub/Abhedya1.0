@@ -7,6 +7,7 @@ import {
   updateEvidenceRecordNotes, 
   deleteEvidenceRecord 
 } from '../services/evidenceStore';
+import { deletePhotoDnaRecord } from '../services/photoDnaStore';
 import { formatHash } from '../utils/hash';
 import { generatePDFReport } from '../utils/report';
 import IncidentReportModal from '../components/IncidentReportModal';
@@ -24,7 +25,6 @@ export default function EvidenceVaultPage() {
   const [editNotes, setEditNotes] = useState('');
 
   const [toastMsg, setToastMsg] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
 
   // Incident Report Modal state
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -34,6 +34,8 @@ export default function EvidenceVaultPage() {
     if (rec) {
       let defType = 'Online Harassment';
       if (rec.incidentType === 'Photo Protection') defType = 'Image Ownership / Unauthorized Use';
+      else if (rec.incidentType === 'Photo DNA') defType = 'Photo DNA Registration';
+      else if (rec.incidentType === 'Photo DNA Verification') defType = 'Photo DNA Verification';
       else if (rec.incidentType === 'Image Investigation') defType = 'Image Manipulation Investigation';
       else if (rec.category === 'Threat') defType = 'Threatening Comment';
       else if (rec.category === 'Sexual Harassment') defType = 'Sexual Harassment';
@@ -54,6 +56,7 @@ export default function EvidenceVaultPage() {
         reasons: rec.reasons || [],
         additionalNotes: rec.notes || '',
         thumbnailUrl: rec.thumbnailUrl || null,
+        evidenceDetails: rec.evidenceDetails || null,
       });
     } else {
       setModalInitialData({
@@ -67,15 +70,15 @@ export default function EvidenceVaultPage() {
     setIsReportModalOpen(true);
   };
 
-  // Load records on mount
-  useEffect(() => {
-    loadRecords();
-  }, []);
-
   const loadRecords = () => {
     const list = getEvidenceRecords();
     setRecords(list);
   };
+
+  // Load records on mount
+  useEffect(() => {
+    loadRecords();
+  }, []);
 
   const handleSelectRecord = (rec) => {
     setSelectedRecord(rec);
@@ -92,9 +95,16 @@ export default function EvidenceVaultPage() {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm(`Are you sure you want to delete evidence record ${id}?`)) {
       deleteEvidenceRecord(id);
+      if (id.startsWith('DNA-')) {
+        try {
+          await deletePhotoDnaRecord(id);
+        } catch (e) {
+          console.warn('Failed to delete Photo DNA record from IndexedDB:', e);
+        }
+      }
       showToast(`Record ${id} deleted.`);
       setSelectedRecord(null);
       loadRecords();
@@ -113,7 +123,7 @@ export default function EvidenceVaultPage() {
     showToast('Exported all records to JSON');
   };
 
-  const handleExportPDF = (rec) => {
+  const _handleExportPDF = (rec) => {
     if (rec) {
       generatePDFReport(rec);
     } else {
@@ -488,6 +498,15 @@ export default function EvidenceVaultPage() {
                       <strong class="text-primary font-label-sm block uppercase">Content Payload:</strong>
                       <p class="text-on-surface mt-1 whitespace-pre-wrap">{selectedRecord.content}</p>
                     </div>
+
+                    {selectedRecord.evidenceDetails?.photoDnaId && (
+                      <div class="pt-2 border-t border-surface-variant/40">
+                        <strong class="text-primary font-label-sm block uppercase">Associated Photo DNA ID:</strong>
+                        <span class="font-mono text-xs text-primary font-semibold bg-surface-container px-2 py-0.5 rounded inline-block mt-1">
+                          {selectedRecord.evidenceDetails.photoDnaId}
+                        </span>
+                      </div>
+                    )}
 
                     <div class="pt-2 border-t border-surface-variant/40">
                       <strong class="text-primary font-label-sm block uppercase">SHA-256 Fingerprint:</strong>

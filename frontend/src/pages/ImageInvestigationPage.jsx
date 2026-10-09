@@ -2,9 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import { loadImageFile, compareImages } from '../utils/imageDiff';
+import { loadImageFile, loadImageSource, compareImages } from '../utils/imageDiff';
 import { hashFile, formatHash } from '../utils/hash';
 import { saveEvidenceRecord, getEvidenceRecords } from '../services/evidenceStore';
+import { 
+  getPhotoDnaRecords, 
+  getPhotoDnaRecordById, 
+  getPhotoDnaRecordByHash, 
+  registerPhotoDna 
+} from '../services/photoDnaStore';
 import IncidentReportModal from '../components/IncidentReportModal';
 
 export default function ImageInvestigationPage() {
@@ -29,10 +35,14 @@ export default function ImageInvestigationPage() {
   const [threshold, setThreshold] = useState(30);
 
   const [diffResults, setDiffResults] = useState(null);
-  const [investigationId, setInvestigationId] = useState('');
+  const [investigationId, setInvestigationId] = useState(() => {
+    const nowStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `INV-${nowStr}-${rand}`;
+  });
   const [userNotes, setUserNotes] = useState('');
 
-  // Integrity Checker Specific States
+  // Integrity Checker & Vault States
   const [savedVaultRecords, setSavedVaultRecords] = useState([]);
   const [selectedVaultId, setSelectedVaultId] = useState('');
   const [integrityOutcome, setIntegrityOutcome] = useState(null);
@@ -43,6 +53,13 @@ export default function ImageInvestigationPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
 
+  // Photo DNA State
+  const [dnaRecords, setDnaRecords] = useState([]);
+  const [selectedDnaId, setSelectedDnaId] = useState('');
+  const [selectedDnaRecord, setSelectedDnaRecord] = useState(null);
+  const [origPreviewUrl, setOrigPreviewUrl] = useState('');
+  const [suspPreviewUrl, setSuspPreviewUrl] = useState('');
+
   // Report Modal state
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [modalInitialData, setModalInitialData] = useState({});
@@ -50,21 +67,113 @@ export default function ImageInvestigationPage() {
   const inputOrigRef = useRef(null);
   const inputSuspRef = useRef(null);
 
-  // Initialize random case ID & Load Vault Records
-  useEffect(() => {
-    const nowStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    setInvestigationId(`INV-${nowStr}-${rand}`);
+  const exactHashMatch = Boolean(hashOrig && hashSusp && hashOrig.toLowerCase() === hashSusp.toLowerCase());
 
+  // Initialize random case ID & Load Storage Records
+  useEffect(() => {
     try {
       const records = getEvidenceRecords();
       setSavedVaultRecords(records || []);
     } catch (err) {
       console.error('Failed to load vault records:', err);
     }
+    loadDnaRecords();
   }, []);
 
-  // Handle Original / Reference File Upload
+  const loadDnaRecords = async () => {
+    try {
+      const records = await getPhotoDnaRecords();
+      setDnaRecords(records || []);
+    } catch {
+      console.warn('Could not load Photo DNA records from storage');
+    }
+  };
+
+  // Determine Photo DNA / Integrity Verification Verdict
+  const getVerdict = () => {
+    if (!hashOrig) {
+      return {
+        category: 'Register or load reference first',
+        detail: 'Select a registered Photo DNA / Vault record or upload an authentic reference image first to verify against.',
+        badgeColor: 'bg-surface-container-low text-on-surface-variant border-surface-variant/80',
+        icon: 'help_outline',
+      };
+    }
+    if (!hashSusp || !diffResults) {
+      return {
+        category: 'Unable to verify — try another image',
+        detail: 'Upload a suspected or modified variant image to run exact fingerprint comparison and visual difference analysis.',
+        badgeColor: 'bg-surface-container-low text-on-surface-variant border-surface-variant/80',
+        icon: 'pending',
+      };
+    }
+    if (exactHashMatch) {
+      return {
+        category: 'Exact file match',
+        detail: 'The cryptographic SHA-256 fingerprints match byte-for-byte. The uploaded image is identical to the registered original.',
+        badgeColor: 'bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800',
+        icon: 'verified',
+      };
+    }
+    if (diffResults.diffPercent <= 5.0) {
+      return {
+        category: 'Visually similar, file differs',
+        detail: `SHA-256 fingerprints differ, but visual analysis indicates high visual similarity (${diffResults.matchPercent}% match estimate). Different file hashes can result from legitimate re-encoding, compression, resizing, or format conversion.`,
+        badgeColor: 'bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800',
+        icon: 'tune',
+      };
+    }
+    return {
+      category: 'Visual differences detected',
+      detail: `SHA-256 fingerprints differ and visual analysis detected changed pixel regions (${diffResults.diffPercent}% pixel difference across sensitivity threshold ${threshold}). A visual difference is not proof of malicious manipulation.`,
+      badgeColor: 'bg-error-container/60 text-on-error-container border-error/30',
+      icon: 'difference',
+    };
+  };
+
+  const verdict = getVerdict();
+
+  // Select a previously registered Photo DNA record
+  const handleSelectDnaRecord = async (dnaId) => {
+    setSelectedDnaId(dnaId);
+    if (!dnaId) {
+      setSelectedDnaRecord(null);
+      setFileOrig(null);
+      setImgOrigObj(null);
+      setHashOrig('');
+      setDimOrig({ w: 0, h: 0 });
+      setOrigPreviewUrl('');
+      return;
+    }
+
+    try {
+      const record = await getPhotoDnaRecordById(dnaId);
+      if (!record) {
+        setErrorMsg('Selected Photo DNA record not found in storage.');
+        return;
+      }
+      setSelectedDnaRecord(record);
+      setHashOrig(record.sha256);
+      setDimOrig(record.dimensions || { w: 0, h: 0 });
+
+      const blob = record.imageBlob;
+      const file = new File([blob], record.fileName, { type: record.fileType || 'image/png' });
+      setFileOrig(file);
+
+      const objUrl = URL.createObjectURL(blob);
+      setOrigPreviewUrl(objUrl);
+
+      const img = await loadImageSource(blob);
+      setImgOrigObj(img);
+      setDimOrig({ w: img.naturalWidth, h: img.naturalHeight });
+      showToast(`Loaded Photo DNA record: ${record.fileName} (${record.id})`);
+    } catch (err) {
+      console.error('Failed to load registered Photo DNA image:', err);
+      setErrorMsg('Failed to load registered Photo DNA image from storage.');
+    }
+  };
+
+  // Handle Original File Upload
   const handleOrigUpload = async (file) => {
     if (!file) return;
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
@@ -78,12 +187,58 @@ export default function ImageInvestigationPage() {
     setErrorMsg('');
     setSelectedVaultId('');
     setFileOrig(file);
-    const hash = await hashFile(file);
-    setHashOrig(hash);
+    const objUrl = URL.createObjectURL(file);
+    setOrigPreviewUrl(objUrl);
 
-    const img = await loadImageFile(file);
-    setImgOrigObj(img);
-    setDimOrig({ w: img.naturalWidth, h: img.naturalHeight });
+    try {
+      const hash = await hashFile(file);
+      setHashOrig(hash);
+
+      const match = await getPhotoDnaRecordByHash(hash);
+      if (match) {
+        setSelectedDnaId(match.id);
+        setSelectedDnaRecord(match);
+        showToast(`Recognized registered Photo DNA: ${match.id}`);
+      } else {
+        setSelectedDnaId('');
+        setSelectedDnaRecord(null);
+      }
+
+      const img = await loadImageFile(file);
+      setImgOrigObj(img);
+      setDimOrig({ w: img.naturalWidth, h: img.naturalHeight });
+    } catch (err) {
+      console.error('Failed to process original image:', err);
+      setErrorMsg('Failed to process image. Try another file.');
+    }
+  };
+
+  // Register current uploaded original as Photo DNA
+  const handleRegisterCurrentAsDna = async () => {
+    if (!fileOrig || !hashOrig) {
+      setErrorMsg('No authentic original image loaded to register.');
+      return;
+    }
+    try {
+      const record = await registerPhotoDna({
+        file: fileOrig,
+        imageObj: imgOrigObj,
+        dimensions: dimOrig,
+      });
+      setSelectedDnaId(record.id);
+      setSelectedDnaRecord(record);
+      const list = await getPhotoDnaRecords();
+      setDnaRecords(list);
+      showToast(`Registered as Photo DNA: ${record.id}`);
+    } catch (err) {
+      if (err.existingRecord) {
+        setSelectedDnaId(err.existingRecord.id);
+        setSelectedDnaRecord(err.existingRecord);
+        showToast(`Already registered under Photo DNA ID: ${err.existingRecord.id}`);
+      } else {
+        setErrorMsg(err.message || 'Failed to register Photo DNA');
+      }
+    }
   };
 
   // Handle Suspected File Upload
@@ -99,12 +254,20 @@ export default function ImageInvestigationPage() {
     }
     setErrorMsg('');
     setFileSusp(file);
-    const hash = await hashFile(file);
-    setHashSusp(hash);
+    const objUrl = URL.createObjectURL(file);
+    setSuspPreviewUrl(objUrl);
 
-    const img = await loadImageFile(file);
-    setImgSuspObj(img);
-    setDimSusp({ w: img.naturalWidth, h: img.naturalHeight });
+    try {
+      const hash = await hashFile(file);
+      setHashSusp(hash);
+
+      const img = await loadImageFile(file);
+      setImgSuspObj(img);
+      setDimSusp({ w: img.naturalWidth, h: img.naturalHeight });
+    } catch (err) {
+      console.error('Failed to process suspected file:', err);
+      setErrorMsg('Failed to process suspected file. Try another image.');
+    }
   };
 
   // Select Vault Record as Reference
@@ -134,9 +297,15 @@ export default function ImageInvestigationPage() {
   // Run Image Comparison whenever images or threshold change
   useEffect(() => {
     if (imgOrigObj && imgSuspObj) {
-      const res = compareImages(imgOrigObj, imgSuspObj, threshold);
-      setDiffResults(res);
-      evaluateIntegrityOutcome(res);
+      try {
+        const res = compareImages(imgOrigObj, imgSuspObj, threshold);
+        setDiffResults(res);
+        evaluateIntegrityOutcome(res);
+      } catch (err) {
+        console.error('Failed to compare images:', err);
+        setErrorMsg('Unable to verify images. Error during visual comparison.');
+        setDiffResults(null);
+      }
     } else {
       setDiffResults(null);
       setIntegrityOutcome(null);
@@ -150,7 +319,7 @@ export default function ImageInvestigationPage() {
       return;
     }
 
-    if (hashOrig && hashSusp && hashOrig === hashSusp) {
+    if (hashOrig && hashSusp && hashOrig.toLowerCase() === hashSusp.toLowerCase()) {
       setIntegrityOutcome({
         status: 'Exact Match',
         color: 'bg-secondary-container text-on-secondary-container',
@@ -172,7 +341,7 @@ export default function ImageInvestigationPage() {
 
     if (res && res.diffPercent === 0) {
       setIntegrityOutcome({
-        status: 'Exact Match',
+        status: 'Exact Match (Visual)',
         color: 'bg-secondary-container text-on-secondary-container',
         icon: 'check_circle',
         details: 'Visual pixels match 100%, though SHA-256 hashes differ due to header metadata or re-encoding changes.',
@@ -206,6 +375,10 @@ export default function ImageInvestigationPage() {
     setImgSuspObj(null);
     setHashOrig('');
     setHashSusp('');
+    setSelectedDnaId('');
+    setSelectedDnaRecord(null);
+    setOrigPreviewUrl('');
+    setSuspPreviewUrl('');
     setDiffResults(null);
     setIntegrityOutcome(null);
     setSelectedVaultId('');
@@ -225,20 +398,36 @@ export default function ImageInvestigationPage() {
     try {
       const record = await saveEvidenceRecord({
         id: investigationId,
-        incidentType: 'Photo Integrity Check',
-        title: `Integrity Check: ${fileSusp ? fileSusp.name : 'Photo'} (${integrityOutcome?.status || 'Evaluated'})`,
-        content: `Outcome: ${integrityOutcome?.status || 'Evaluated'} | Pixel Delta: ${diffResults ? diffResults.diffPercent : 0}% | Ref Hash: ${hashOrig || 'N/A'} | Suspected Hash: ${hashSusp}`,
-        category: 'Evidence Integrity',
+        incidentType: selectedDnaId ? 'Photo DNA Verification' : 'Photo Integrity Check',
+        title: selectedDnaId 
+          ? `Photo DNA Verification: ${fileOrig ? fileOrig.name : 'Reference'} vs ${fileSusp.name}`
+          : `Integrity Check: ${fileSusp ? fileSusp.name : 'Photo'} (${integrityOutcome?.status || verdict.category})`,
+        content: `Outcome: ${integrityOutcome?.status || verdict.category} | Pixel Delta: ${diffResults ? diffResults.diffPercent : 0}% | Ref Hash: ${hashOrig || 'N/A'} | Suspected Hash: ${hashSusp}${selectedDnaId ? ` | Photo DNA ID: ${selectedDnaId}` : ''}`,
+        category: selectedDnaId ? 'Photo DNA Verification' : 'Evidence Integrity',
         riskLevel: diffResults && diffResults.diffPercent > 25 ? 'High' : diffResults && diffResults.diffPercent > 5 ? 'Medium' : 'Low',
         riskScore: diffResults ? Math.min(100, Math.round(diffResults.diffPercent * 3)) : 0,
         source: fileOrig && fileSusp ? `${fileOrig.name} vs ${fileSusp.name}` : fileSusp ? `Suspected: ${fileSusp.name}` : 'Local Upload',
-        notes: userNotes ? userNotes : `Integrity verification outcome: ${integrityOutcome?.status}. ${integrityOutcome?.details}`,
+        notes: userNotes ? userNotes : `Integrity verification outcome: ${integrityOutcome?.status || verdict.category}. ${integrityOutcome?.details || verdict.detail}`,
         thumbnailUrl: diffResults ? diffResults.thumbnailUrl : null,
+        sha256: hashSusp,
+        evidenceDetails: {
+          photoDnaId: selectedDnaId || null,
+          verdictCategory: verdict.category,
+          exactHashMatch,
+          origName: fileOrig ? fileOrig.name : null,
+          suspName: fileSusp ? fileSusp.name : null,
+          diffPercent: diffResults ? diffResults.diffPercent : 0,
+          matchPercent: diffResults ? diffResults.matchPercent : 0,
+          mad: diffResults ? diffResults.mad : 0,
+          psnr: diffResults ? diffResults.psnr : 0,
+          origHash: hashOrig,
+          suspHash: hashSusp,
+        }
       });
 
-      showToast(`Integrity check saved to Evidence Vault as Record ${record.id}`);
-    } catch (err) {
-      setErrorMsg('Failed to save record to Evidence Vault');
+      showToast(`Investigation saved to Evidence Vault as Record ${record.id}`);
+    } catch (_err) {
+      setErrorMsg('Failed to save investigation to Evidence Vault');
     }
   };
 
@@ -249,18 +438,21 @@ export default function ImageInvestigationPage() {
     }
 
     setModalInitialData({
-      defaultIncidentType: 'Photo Integrity Investigation',
-      defaultDescription: `Image integrity assessment performed on "${fileSusp.name}". Verification outcome: ${integrityOutcome?.status || 'Evaluated'} (${diffResults.diffPercent}% pixel delta).`,
+      defaultIncidentType: selectedDnaId ? 'Photo DNA Verification' : 'Photo Integrity Investigation',
+      defaultDescription: `Image integrity assessment performed on "${fileSusp.name}". Verification outcome: ${verdict.category} (${diffResults.diffPercent}% pixel delta).`,
       platform: 'Online Platform',
-      sourceModule: 'Integrity Checker',
+      sourceModule: selectedDnaId ? 'Photo DNA Verification' : 'Integrity Checker',
       originalContent: `Suspected: ${fileSusp.name} | SHA-256: ${hashSusp} | Ref SHA-256: ${hashOrig || 'None'} | Delta: ${diffResults.diffPercent}%`,
-      category: 'Image Integrity Investigation',
+      category: selectedDnaId ? 'Photo DNA Verification' : 'Image Integrity Investigation',
       riskLevel: diffResults.diffPercent > 25 ? 'High' : diffResults.diffPercent > 5 ? 'Medium' : 'Low',
       riskScore: Math.min(100, Math.round(diffResults.diffPercent * 3)),
       reasons: [
-        `Integrity Status: ${integrityOutcome?.status}`,
-        `Visual pixel delta: ${diffResults.diffPercent}%`,
+        `Verification Verdict: ${verdict.category}`,
+        `Exact SHA-256 Match: ${exactHashMatch ? 'YES' : 'NO'}`,
+        `Visual similarity estimate: ${diffResults.matchPercent}% (Pixel delta: ${diffResults.diffPercent}%)`,
         `Mean Abs Difference (MAD): ${diffResults.mad}`,
+        `PSNR: ${diffResults.psnr} dB`,
+        selectedDnaId ? `Registered Photo DNA ID: ${selectedDnaId}` : 'Ad-hoc Reference',
       ],
       thumbnailUrl: diffResults.thumbnailUrl,
     });
@@ -272,7 +464,6 @@ export default function ImageInvestigationPage() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // Derived facts & evidence gaps for Disputed Evidence Review Report
   const currentStatus = integrityOutcome?.status || (!fileOrig && fileSusp ? 'Reference Not Found' : 'Inconclusive');
   const timestampNow = new Date().toLocaleString();
 
@@ -393,30 +584,65 @@ export default function ImageInvestigationPage() {
                   </section>
                 )}
 
-                {/* Upload & Reference Section */}
+                {/* Dual Upload / Reference Display Section */}
                 <section className="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
                   
-                  {/* Reference Image Card */}
+                  {/* Card 1: Original Source / Reference */}
                   <article className="bg-surface-container-lowest rounded-lg p-space-md flex flex-col gap-space-sm shadow-sm border border-surface-variant/80">
-                    <div className="flex items-center justify-between pb-space-xs border-b border-surface-variant/50">
+                    <div className="flex items-center justify-between pb-space-xs border-b border-surface-variant/50 flex-wrap gap-2">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-secondary text-base">verified</span>
                         <span className="font-label-md text-label-md text-primary uppercase font-semibold tracking-wider">
-                          Trusted Reference
+                          Trusted Reference {selectedDnaId ? `(${selectedDnaId})` : ''}
                         </span>
                       </div>
-                      
+                      {fileOrig && (
+                        <span className="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded font-mono">
+                          {(fileOrig.size / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Registered Photo DNA & Vault Selectors */}
+                    <div className="flex items-center justify-between gap-2 p-1.5 rounded bg-surface-container-low border border-surface-variant/60 font-body-sm text-xs flex-wrap">
+                      <div className="flex items-center gap-1 text-on-surface-variant shrink-0">
+                        <span className="material-symbols-outlined text-sm text-secondary">dna</span>
+                        <span className="font-label-sm text-[0.6875rem] uppercase font-semibold">Photo DNA:</span>
+                      </div>
+                      <select
+                        value={selectedDnaId}
+                        onChange={(e) => handleSelectDnaRecord(e.target.value)}
+                        className="bg-surface-container-lowest text-on-surface text-xs rounded px-2 py-1 border border-surface-variant/60 flex-1 min-w-0 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate"
+                      >
+                        <option value="">-- Choose Photo DNA repository --</option>
+                        {dnaRecords.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.fileName} ({r.id})
+                          </option>
+                        ))}
+                      </select>
                       {savedVaultRecords.length > 0 && (
                         <select 
                           value={selectedVaultId} 
                           onChange={(e) => handleSelectVaultReference(e.target.value)}
-                          className="text-xs p-1 bg-surface-container rounded border border-surface-variant text-on-surface focus:outline-none"
+                          className="text-xs p-1 bg-surface-container-lowest rounded border border-surface-variant/60 text-on-surface focus:outline-none shrink-0"
                         >
-                          <option value="">-- Load from Local Vault --</option>
+                          <option value="">-- Load Vault --</option>
                           {savedVaultRecords.map(r => (
                             <option key={r.id} value={r.id}>{r.id} ({r.category || 'Record'})</option>
                           ))}
                         </select>
+                      )}
+                      {fileOrig && !selectedDnaId && (
+                        <button
+                          type="button"
+                          onClick={handleRegisterCurrentAsDna}
+                          className="px-2 py-1 bg-surface-container hover:bg-surface-container-high text-primary border border-surface-variant/60 rounded text-[0.6875rem] font-semibold shrink-0 cursor-pointer flex items-center gap-1"
+                          title="Register this image into Photo DNA repository"
+                        >
+                          <span className="material-symbols-outlined text-xs text-secondary">add_circle</span>
+                          <span>Register DNA</span>
+                        </button>
                       )}
                     </div>
 
@@ -428,11 +654,11 @@ export default function ImageInvestigationPage() {
                         >
                           <span className="material-symbols-outlined text-3xl text-secondary mb-2">upload_file</span>
                           <span className="font-title-sm text-title-sm text-primary font-semibold">Upload Trusted Reference</span>
-                          <span className="font-body-sm text-body-sm text-on-surface-variant mt-1">Select authentic source image</span>
+                          <span className="font-body-sm text-body-sm text-on-surface-variant mt-1">Select authentic source image or choose from Photo DNA above</span>
                         </div>
                       ) : (
                         <img 
-                          src={URL.createObjectURL(fileOrig)} 
+                          src={origPreviewUrl || (fileOrig instanceof Blob ? URL.createObjectURL(fileOrig) : '')} 
                           alt="Original reference" 
                           className="w-full h-full object-contain"
                         />
@@ -447,14 +673,19 @@ export default function ImageInvestigationPage() {
                     </div>
 
                     {fileOrig && (
-                      <div className="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-sm text-label-sm">
+                      <div className="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-sm text-label-sm flex-wrap gap-1">
                         <span>{fileOrig.name} ({dimOrig.w} × {dimOrig.h} px)</span>
+                        {selectedDnaRecord && (
+                          <span className="text-[0.6875rem] font-medium text-secondary">
+                            Reg: {new Date(selectedDnaRecord.timestamp).toLocaleDateString()}
+                          </span>
+                        )}
                         <span className="font-mono text-[0.6875rem]">SHA-256: {formatHash(hashOrig)}</span>
                       </div>
                     )}
                   </article>
 
-                  {/* Suspected Image Card */}
+                  {/* Card 2: Suspected Image */}
                   <article className="bg-surface-container-lowest rounded-lg p-space-md flex flex-col gap-space-sm shadow-sm border border-surface-variant/80">
                     <div className="flex items-center justify-between pb-space-xs border-b border-surface-variant/50">
                       <div className="flex items-center gap-2">
@@ -482,7 +713,7 @@ export default function ImageInvestigationPage() {
                         </div>
                       ) : (
                         <img 
-                          src={URL.createObjectURL(fileSusp)} 
+                          src={suspPreviewUrl || (fileSusp instanceof Blob ? URL.createObjectURL(fileSusp) : '')} 
                           alt="Suspected variant" 
                           className="w-full h-full object-contain"
                         />
@@ -497,7 +728,7 @@ export default function ImageInvestigationPage() {
                     </div>
 
                     {fileSusp && (
-                      <div className="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-sm text-label-sm">
+                      <div className="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-sm text-label-sm flex-wrap gap-1">
                         <span>{fileSusp.name} ({dimSusp.w} × {dimSusp.h} px)</span>
                         <span className="font-mono text-[0.6875rem]">SHA-256: {formatHash(hashSusp)}</span>
                       </div>
@@ -563,17 +794,37 @@ export default function ImageInvestigationPage() {
                     <div className="lg:col-span-5 flex flex-col gap-space-md">
                       <div className="bg-surface-container-lowest rounded-lg p-space-md shadow-sm border border-surface-variant/80 flex flex-col gap-space-md">
                         
-                        <div className="p-space-md rounded bg-surface-container-low border border-surface-variant flex items-center justify-between">
-                          <div>
-                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest block font-medium">
-                              Visual Difference Delta
-                            </span>
-                            <div className="font-display-hero text-headline-lg text-primary tracking-tight font-normal leading-none mt-1">
-                              {diffResults.diffPercent}%
+                        {/* Verification Result Card */}
+                        <div className={`p-space-md rounded-lg border flex flex-col gap-2.5 ${verdict.badgeColor} shadow-xs`}>
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-lg text-secondary">{verdict.icon}</span>
+                              <span className="font-label-sm text-xs uppercase font-bold tracking-wider text-primary">
+                                Photo Verification Verdict
+                              </span>
                             </div>
-                            <span className="font-body-sm text-body-sm text-on-surface-variant mt-1 block">
-                              Pixel difference across target canvas area (Match: {diffResults.matchPercent}%).
+                            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold font-mono uppercase tracking-wide bg-surface-container-lowest text-primary shadow-xs border border-surface-variant/60">
+                              {verdict.category}
                             </span>
+                          </div>
+
+                          <p className="font-body-sm text-xs leading-relaxed text-on-surface">
+                            {verdict.detail}
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surface-variant/60 text-xs">
+                            <div className="p-2 bg-surface-container-lowest/90 rounded border border-surface-variant/40 flex flex-col">
+                              <span className="font-label-sm text-[0.625rem] text-on-surface-variant uppercase font-semibold">Exact-File Identity</span>
+                              <span className="font-mono text-xs font-bold text-primary mt-0.5">
+                                {exactHashMatch ? 'Exact Match' : 'Different Hashes'}
+                              </span>
+                            </div>
+                            <div className="p-2 bg-surface-container-lowest/90 rounded border border-surface-variant/40 flex flex-col">
+                              <span className="font-label-sm text-[0.625rem] text-on-surface-variant uppercase font-semibold">Visual Similarity</span>
+                              <span className="font-mono text-xs font-bold text-primary mt-0.5">
+                                {diffResults.matchPercent}% match ({diffResults.diffPercent}% delta)
+                              </span>
+                            </div>
                           </div>
                         </div>
 
@@ -597,17 +848,15 @@ export default function ImageInvestigationPage() {
                   </section>
                 )}
 
-                {/* Ethical Guardrails & Storage Disclaimers */}
-                <aside className="p-space-md rounded-lg bg-surface-container border border-surface-variant flex flex-col gap-1 text-xs text-on-surface-variant leading-relaxed">
-                  <span className="font-label-md text-label-md text-primary font-semibold uppercase tracking-wider block">
-                    Ethical & System Limitations Notice
-                  </span>
-                  <p>
-                    <strong>Visual Differences & Hash Mismatches:</strong> A pixel delta or hash mismatch indicates visual modifications, compression, resizing, or metadata edits. It does <em>not</em> constitute proof of malicious manipulation or false reporting.
-                  </p>
-                  <p>
-                    <strong>Storage Boundary:</strong> Verification checks are performed strictly against browser local storage (`localStorage`). Photos registered on other devices will return 'Reference Not Found' unless saved locally.
-                  </p>
+                {/* Disclaimer Card */}
+                <aside className="p-space-md rounded-lg bg-surface-container border border-surface-variant flex gap-space-sm items-start">
+                  <span className="material-symbols-outlined text-outline mt-0.5 text-lg">info</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-label-md text-label-md text-primary font-semibold uppercase tracking-wider">Analysis Disclaimer</span>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                      This analysis highlights visual differences. It does not by itself prove AI manipulation or establish authenticity. Different file hashes can result from legitimate re-encoding, compression, resizing, or other changes. A visual difference is not proof of malicious manipulation, and high visual similarity is not proof of authenticity.
+                    </p>
+                  </div>
                 </aside>
 
                 {/* Footer Controls */}
@@ -623,7 +872,6 @@ export default function ImageInvestigationPage() {
 
                   <div className="flex flex-wrap items-center gap-space-sm w-full sm:w-auto justify-end">
                     
-                    {/* NEW: Generate Disputed Evidence Review Report Button */}
                     <button 
                       type="button"
                       onClick={() => {
@@ -673,7 +921,6 @@ export default function ImageInvestigationPage() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white text-gray-900 rounded-xl max-w-3xl w-full p-8 shadow-2xl flex flex-col gap-6 max-h-[90vh] overflow-y-auto font-sans print:p-0 print:shadow-none print:max-h-none print:overflow-visible">
             
-            {/* Action Header Bar (Hidden during print) */}
             <div className="flex items-center justify-between border-b pb-4 print:hidden">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-purple-900 text-2xl">assessment</span>
@@ -699,7 +946,6 @@ export default function ImageInvestigationPage() {
             {/* PRINTABLE REPORT BODY */}
             <div className="flex flex-col gap-6 text-sm text-gray-800">
               
-              {/* Header Title */}
               <div className="border-b-2 border-purple-900 pb-3 flex justify-between items-end">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-widest text-purple-900">ABHEDYA Safety & Verification Engine</span>
@@ -717,7 +963,7 @@ export default function ImageInvestigationPage() {
                   <div><strong className="text-gray-600">Case ID:</strong> {investigationId}</div>
                   <div><strong className="text-gray-600">Date & Time:</strong> {timestampNow}</div>
                   <div><strong className="text-gray-600">Suspected File:</strong> {fileSusp ? fileSusp.name : 'N/A'}</div>
-                  <div><strong className="text-gray-600">Reference File:</strong> {fileOrig ? fileOrig.name : (selectedVaultId ? `Vault Record #${selectedVaultId}` : 'None Provided')}</div>
+                  <div><strong className="text-gray-600">Reference File:</strong> {fileOrig ? fileOrig.name : (selectedVaultId ? `Vault Record #${selectedVaultId}` : (selectedDnaId ? `Photo DNA #${selectedDnaId}` : 'None Provided'))}</div>
                   <div><strong className="text-gray-600">Analysis Mode:</strong> {activeMode === 'integrity' ? 'Photo Evidence Integrity Checker' : 'Forensic Diff Analysis'}</div>
                 </div>
               </div>
@@ -736,7 +982,7 @@ export default function ImageInvestigationPage() {
                   </div>
                   <div className="pt-1 font-sans">
                     <strong className="text-gray-600">Hash Check Result:</strong>{' '}
-                    <span className="font-semibold">{hashOrig ? (hashOrig === hashSusp ? 'Exact Match' : 'Hash Mismatch') : 'Reference Not Found'}</span>
+                    <span className="font-semibold">{hashOrig ? (exactHashMatch ? 'Exact Match' : 'Hash Mismatch') : 'Reference Not Found'}</span>
                   </div>
                   {diffResults && (
                     <div className="grid grid-cols-3 gap-2 pt-2 border-t mt-1 text-center font-sans">
@@ -752,11 +998,12 @@ export default function ImageInvestigationPage() {
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="font-bold text-gray-900 border-b pb-1 mb-2 uppercase text-xs text-purple-900 tracking-wider">3. Verified Facts</h3>
                 <ul className="list-disc pl-5 text-xs text-gray-700 flex flex-col gap-1">
-                  {hashOrig && hashSusp && hashOrig === hashSusp && <li>Binary cryptographic hashes match 100% across both uploaded files.</li>}
-                  {hashOrig && hashSusp && hashOrig !== hashSusp && <li>Binary cryptographic hashes differ between suspected and reference images.</li>}
+                  {exactHashMatch && <li>Binary cryptographic hashes match 100% across both uploaded files.</li>}
+                  {hashOrig && hashSusp && !exactHashMatch && <li>Binary cryptographic hashes differ between suspected and reference images.</li>}
                   {diffResults && diffResults.diffPercent > 0 && <li>Visual per-pixel difference analysis detected a {diffResults.diffPercent}% delta across {diffResults.changedRegionsCount} localized region(s).</li>}
                   {diffResults && diffResults.diffPercent === 0 && <li>Visual rendering analysis indicates 0% pixel delta between images.</li>}
-                  {!fileOrig && !selectedVaultId && <li>No trusted reference image or registered SHA-256 fingerprint was provided in local storage.</li>}
+                  {!fileOrig && !selectedVaultId && !selectedDnaId && <li>No trusted reference image or registered SHA-256 fingerprint was provided in local storage.</li>}
+                  {selectedDnaId && <li>Authentic reference was verified against registered Photo DNA repository record #{selectedDnaId}.</li>}
                   <li>Findings reflect local canvas rendering calculations executed at sensitivity threshold {threshold}.</li>
                 </ul>
               </div>
@@ -765,7 +1012,7 @@ export default function ImageInvestigationPage() {
               <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                 <h3 className="font-bold text-amber-900 border-b border-amber-200 pb-1 mb-2 uppercase text-xs tracking-wider">4. Identified Evidence Gaps</h3>
                 <ul className="list-disc pl-5 text-xs text-amber-900 flex flex-col gap-1">
-                  {!fileOrig && !selectedVaultId && <li>Original, unedited reference image is unavailable in local browser vault.</li>}
+                  {!fileOrig && !selectedVaultId && !selectedDnaId && <li>Original, unedited reference image is unavailable in local browser vault.</li>}
                   <li>Origin, metadata provenance, and source platform of the image were not independently verified.</li>
                   <li>Relevant message logs, conversation threads, or context screenshots were not supplied with this image file.</li>
                   <li>Original device timestamps and EXIF camera data could not be verified from compressed browser buffers.</li>
@@ -779,7 +1026,7 @@ export default function ImageInvestigationPage() {
                   <p className="text-xs text-gray-600 mt-0.5">Based on technical canvas calculations and available reference data.</p>
                 </div>
                 <div className="px-4 py-1.5 rounded-full font-bold text-sm bg-purple-900 text-white">
-                  {currentStatus}
+                  {verdict.category || currentStatus}
                 </div>
               </div>
 

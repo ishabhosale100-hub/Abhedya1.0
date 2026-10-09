@@ -15,7 +15,8 @@ export async function computeSHA256(input) {
   } else if (input instanceof ArrayBuffer) {
     buffer = input;
   } else if (ArrayBuffer.isView(input)) {
-    buffer = input.buffer;
+    // Respect byteOffset and byteLength for typed arrays/views
+    buffer = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
   } else {
     throw new Error('Unsupported input type for SHA-256 hash computation');
   }

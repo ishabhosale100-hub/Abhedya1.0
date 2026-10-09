@@ -118,11 +118,13 @@ export function generatePDFReport(dataOrRecords) {
     doc.setDrawColor(220, 210, 215);
 
     const isComment = rec.incidentType === 'Comment Safety' || rec.category === 'Comment Safety' || rec.comment;
-    const isImageDiff = rec.incidentType === 'Image Investigation' || rec.thumbnailUrl || (rec.content && rec.content.includes('Difference Detected'));
+    const isPhotoDnaReg = rec.incidentType === 'Photo DNA' || rec.category === 'Photo DNA Registration';
+    const isImageDiff = rec.incidentType === 'Image Investigation' || rec.incidentType === 'Photo DNA Verification' || rec.thumbnailUrl || (rec.content && rec.content.includes('Difference Detected'));
 
     let boxHeight = 44;
-    if (isImageDiff) boxHeight = 52;
+    if (isImageDiff) boxHeight = 54;
     if (isComment) boxHeight = 48;
+    if (isPhotoDnaReg) boxHeight = 48;
 
     doc.roundedRect(margin, y, contentWidth, boxHeight, 2, 2, 'FD');
 
@@ -145,17 +147,28 @@ export function generatePDFReport(dataOrRecords) {
         doc.setFont('courier', 'normal');
         doc.text(`• SHA-256: ${rec.sha256}`, margin + 6, y + 41);
       }
+    } else if (isPhotoDnaReg) {
+      doc.text(`• Photo DNA ID: ${rec.id || 'N/A'}`, margin + 6, y + 14);
+      doc.text(`• Original File: ${rec.source || rec.title || 'N/A'}`, margin + 6, y + 20);
+      doc.text(`• Metadata: ${rec.notes || rec.content || 'N/A'}`, margin + 6, y + 26);
+      doc.setFont('courier', 'normal');
+      doc.text(`• SHA-256 Fingerprint: ${rec.sha256 || 'N/A'}`, margin + 6, y + 33);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`• Timestamp: ${rec.timestamp ? new Date(rec.timestamp).toUTCString() : new Date().toUTCString()}`, margin + 6, y + 40);
+      doc.text(`• Notice: Cryptographic browser fingerprint. Does not constitute legal provenance certification.`, margin + 6, y + 45);
     } else if (isImageDiff) {
       const details = rec.evidenceDetails || {};
       const origRef = details.origName || rec.source || 'Original Reference Image';
       const suspRef = details.suspName || 'Suspected Variant Image';
       const diffPct = details.diffPercent !== undefined ? details.diffPercent : (rec.diffPercent || 'Recorded Delta');
+      const matchPct = details.matchPercent !== undefined ? details.matchPercent : (typeof diffPct === 'number' ? (100 - diffPct).toFixed(1) : 'N/A');
+      const verdictStr = details.verdictCategory || (diffPct === 0 ? 'Exact file match' : 'Visual differences detected');
 
-      doc.text(`• Original Image Reference: ${origRef}`, margin + 6, y + 14);
-      doc.text(`• Suspected Image Reference: ${suspRef}`, margin + 6, y + 20);
-      doc.text(`• Visual Difference Analysis: Delta percentage computed across pixel grid`, margin + 6, y + 26);
-      doc.text(`• Difference Percentage: ${diffPct}%`, margin + 6, y + 32);
-      doc.text(`• Analysis Note: Visual differences do not by themselves prove AI manipulation or establish authenticity.`, margin + 6, y + 38);
+      doc.text(`• Reference Images: ${origRef}${details.photoDnaId ? ` (Photo DNA: ${details.photoDnaId})` : ''} vs ${suspRef}`, margin + 6, y + 14);
+      doc.text(`• Verification Verdict: ${verdictStr}`, margin + 6, y + 20);
+      doc.text(`• Visual Similarity Estimate: ${matchPct}% match (${diffPct}% pixel delta, MAD: ${details.mad || 'N/A'}, PSNR: ${details.psnr || 'N/A'} dB)`, margin + 6, y + 26);
+      doc.text(`• Cryptographic Check: ${details.exactHashMatch ? 'Exact SHA-256 match' : 'Different SHA-256 file fingerprints'}`, margin + 6, y + 32);
+      doc.text(`• Analysis Note: Different file hashes can result from compression/re-encoding. Visual delta is not proof of malice.`, margin + 6, y + 38);
       doc.text(`• Timestamp: ${rec.timestamp ? new Date(rec.timestamp).toUTCString() : new Date().toUTCString()}`, margin + 6, y + 44);
     } else {
       // Photo Protection or Generic Evidence
