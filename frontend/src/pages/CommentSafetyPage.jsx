@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import { analyzeComments, checkBackendHealth } from '../services/api';
+import { analyzeComments, checkBackendHealth, analyzeIncident } from '../services/api';
 import { saveEvidenceRecord } from '../services/evidenceStore';
 import { generatePDFReport } from '../utils/report';
 import IncidentReportModal from '../components/IncidentReportModal';
@@ -34,6 +34,31 @@ export default function CommentSafetyPage() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [modalInitialData, setModalInitialData] = useState({});
 
+
+  // Incident tracking state (demo account)
+  const [incidentAccount, setIncidentAccount] = useState('demo_user_1');
+  const [incidentPlatform, setIncidentPlatform] = useState('instagram');
+  const [incidentComment, setIncidentComment] = useState('');
+  const [incidentResult, setIncidentResult] = useState(null);
+  const [incidentLoading, setIncidentLoading] = useState(false);
+
+  const handleTrackIncident = async () => {
+    setIncidentLoading(true);
+    const { data, error } = await analyzeIncident(
+      incidentAccount,
+      incidentPlatform,
+      incidentComment,
+      sensitivity
+    );
+    setIncidentLoading(false);
+    if (error) {
+      setErrorMsg(error);
+      return;
+    }
+    setErrorMsg('');
+    setIncidentResult(data);
+    setIncidentComment('');
+  };
  useEffect(() => {
     setBackendOnline(true);
   }, []);
@@ -410,7 +435,83 @@ const handleClear = () => {
 
                   {/* RIGHT COLUMN: Results & Serious Threat Alert (7 Cols) */}
                   <div class="col-span-12 lg:col-span-7 flex flex-col gap-space-md">
-                    
+
+                           {/* Incident Tracker (demo account) */}
+                    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm border border-surface-variant/60">
+                      <div class="flex items-center justify-between">
+                        <span class="font-title-sm text-title-sm text-primary font-semibold">Repeat-Harassment Tracker</span>
+                        <span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Demo account</span>
+                      </div>
+
+                      <div class="flex flex-wrap gap-2">
+                        <input
+                          value={incidentAccount}
+                          onChange={(e) => setIncidentAccount(e.target.value)}
+                          placeholder="Demo account ID"
+                          class="flex-1 min-w-[140px] bg-surface-container-low p-2 rounded border border-surface-variant/60 font-body-sm text-sm"
+                        />
+                        <input
+                          value={incidentPlatform}
+                          onChange={(e) => setIncidentPlatform(e.target.value)}
+                          placeholder="Platform"
+                          class="flex-1 min-w-[140px] bg-surface-container-low p-2 rounded border border-surface-variant/60 font-body-sm text-sm"
+                        />
+                      </div>
+
+                      <div class="flex gap-2">
+                        <input
+                          value={incidentComment}
+                          onChange={(e) => setIncidentComment(e.target.value)}
+                          placeholder="Type one comment to track..."
+                          class="flex-1 bg-surface-container-low p-2 rounded border border-surface-variant/60 font-body-sm text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleTrackIncident}
+                          disabled={incidentLoading}
+                          class="bg-primary text-on-primary disabled:opacity-50 font-title-sm text-title-sm px-space-md py-1.5 rounded cursor-pointer"
+                        >
+                          {incidentLoading ? 'Tracking...' : 'Track as incident'}
+                        </button>
+                      </div>
+
+                      {incidentResult && (
+                        <div class="flex flex-col gap-2 pt-1">
+                          <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="font-label-sm text-label-sm bg-primary-container text-on-primary px-2 py-0.5 rounded font-semibold">
+                              {incidentResult.incident.category} ({incidentResult.incident.risk_score}/100)
+                            </span>
+                            <span class="font-label-sm text-label-sm bg-surface-container-high px-2 py-0.5 rounded">
+                              Priority: {incidentResult.incident.priority}
+                            </span>
+                            {incidentResult.incident.repeat_harassment && (
+                              <span class="font-label-sm text-label-sm bg-error-container text-error px-2 py-0.5 rounded font-semibold">
+                                REPEAT HARASSMENT ({incidentResult.incident.previous_harmful_incidents} earlier)
+                              </span>
+                            )}
+                            {incidentResult.incident.escalating && (
+                              <span class="font-label-sm text-label-sm bg-error-container text-error px-2 py-0.5 rounded font-semibold">
+                                ESCALATING
+                              </span>
+                            )}
+                          </div>
+
+                          <div class="font-label-sm text-label-sm text-outline uppercase tracking-wider">
+                            Earlier incidents ({incidentResult.history.length})
+                          </div>
+                          {incidentResult.history.length === 0 ? (
+                            <p class="font-body-sm text-sm text-on-surface-variant">No earlier incidents for this account and platform.</p>
+                          ) : (
+                            incidentResult.history.map((h) => (
+                              <div key={h.incident_id} class="bg-surface-container-low p-2 rounded text-sm flex justify-between gap-2">
+                                <span class="italic">"{h.comment}"</span>
+                                <span class="font-mono text-xs text-outline whitespace-nowrap">{h.category}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>             
                     {/* SERIOUS THREAT ALERT CARD (Shows ONLY if Critical or Threat present) */}
                     {hasCriticalThreat && (
                       <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-md flex flex-col gap-space-sm relative overflow-hidden border border-error/40">
