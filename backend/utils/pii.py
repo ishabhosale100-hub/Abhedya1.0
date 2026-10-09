@@ -40,7 +40,7 @@ CONTACT_DEMANDS = [
     "share your number",
     "send your location",
     "dm me your number",
-    "whatsApp me on",
+    "whatsapp me on",
     "whatsapp number"
 ]
 
@@ -91,4 +91,35 @@ def scan_pii_and_threats(text: str) -> Tuple[List[str], List[str], int]:
         reasons.append(f"Unsolicited contact demand detected: '{found_demands[0]}'")
         score_boost = max(score_boost, 75)
 
+
+    # 6. Abusive words (demo rule set)
+    def _find(phrases):
+        return [p for p in phrases if re.search(r"\b" + re.escape(p) + r"\b", text_lower)]
+
+    abusive = _find(["idiot", "stupid", "ugly", "loser", "dumb", "moron", "pathetic", "useless", "shut up", "hate you"])
+    if abusive:
+        categories.append("Abusive")
+        reasons.append(f"Abusive language detected: '{abusive[0]}'")
+        score_boost = max(score_boost, 40)
+
+    # 7. Harassing phrases (demo rule set)
+    harassing = _find(["go die", "go and die", "nobody likes you", "i am watching you", "i'm watching you", "stalk you"])
+    if harassing:
+        categories.append("Harassment")
+        reasons.append(f"Harassing language detected: '{harassing[0]}'")
+        score_boost = max(score_boost, 60)
+
+    # 8. Sexually harassing phrases (demo rule set)
+    sexual = _find(["send nudes", "nude pics", "show your body", "sleep with me", "slut", "whore", "your price"])
+    if sexual:
+        categories.append("Sexual Harassment")
+        reasons.append(f"Sexually harassing language detected: '{sexual[0]}'")
+        score_boost = max(score_boost, 80)
+
+    # 9. Hateful phrases about women (demo rule set)
+    hateful = _find(["women are worthless", "women belong in the kitchen", "women are only good for", "go back to the kitchen"])
+    if hateful:
+        categories.append("Hate")
+        reasons.append("Hateful or demeaning language about women detected")
+        score_boost = max(score_boost, 70)
     return categories, reasons, score_boost
